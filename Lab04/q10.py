@@ -1,69 +1,58 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
+# GenAI Tool Used: ChatGPT
 
-def calculate_mean(data):
+file_path = "Lab Session Data.xlsx"
 
-    return np.sum(data) / len(data)
-
-
-def calculate_variance(data):
-
-    mean = calculate_mean(data)
-
-    return np.sum(
-        (data - mean) ** 2
-    ) / len(data)
+data = pd.read_excel(file_path, sheet_name="marketing_campaign")
 
 
-file = "Lab Session Data.xlsx"
-sheet = "marketing_campaign"
+def calculate_mean(values):
+    total = 0
 
-df = pd.read_excel(file, sheet_name=sheet)
+    for value in values:
+        total += value
 
-numeric_df = df.select_dtypes(
-    include=np.number
-).dropna()
+    return total / len(values)
 
-feature = numeric_df.columns[0]
 
-data = numeric_df[feature].values
+def calculate_variance(values):
+    mean = calculate_mean(values)
+    total = 0
 
-counts, bins = np.histogram(
-    data,
-    bins=10
-)
+    for value in values:
+        total += (value - mean) ** 2
 
-print("Feature:", feature)
+    return total / len(values)
 
-print("\nHistogram Counts:")
-print(counts)
 
-print("\nBin Edges:")
-print(bins)
+values = data["Income"].dropna().values
 
-print(
-    "\nMean:",
-    calculate_mean(data)
-)
+mean = calculate_mean(values)
+variance = calculate_variance(values)
 
-print(
-    "Variance:",
-    calculate_variance(data)
-)
+print("Feature: Income")
+print("Mean    :", mean)
+print("Variance:", variance)
 
-plt.hist(
-    data,
-    bins=10,
-    edgecolor="black"
-)
+histogram, bins = np.histogram(values, bins=10)
 
-plt.xlabel(feature)
+print("\nHistogram Data")
+print("-" * 40)
+
+for i in range(len(histogram)):
+    print(
+        f"Range: {bins[i]:.2f} - {bins[i + 1]:.2f} "
+        f"Count: {histogram[i]}"
+    )
+
+plt.hist(values, bins=10)
+
+plt.xlabel("Income")
 plt.ylabel("Frequency")
-
-plt.title(
-    "Histogram of " + feature
-)
+plt.title("Income Distribution")
+plt.grid(True)
 
 plt.show()

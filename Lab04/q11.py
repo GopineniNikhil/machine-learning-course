@@ -1,184 +1,117 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
-def euclidean_distance(A, B):
+# GenAI Tool Used: ChatGPT
 
-    return np.sqrt(
-        np.sum((A - B) ** 2)
-    )
+file_path = "Lab Session Data.xlsx"
+
+data = pd.read_excel(file_path, sheet_name="marketing_campaign")
+
+
+def minkowski_distance(A, B, p=2):
+    return np.sum(np.abs(A - B) ** p) ** (1 / p)
 
 
 def assign_clusters(data, centroids):
-
-    labels = []
+    clusters = []
 
     for point in data:
-
         distances = []
 
         for centroid in centroids:
-
-            distance = euclidean_distance(
-                point,
-                centroid
-            )
-
+            distance = minkowski_distance(point, centroid)
             distances.append(distance)
 
-        nearest_cluster = np.argmin(
-            distances
-        )
+        clusters.append(np.argmin(distances))
 
-        labels.append(
-            nearest_cluster
-        )
-
-    return np.array(labels)
+    return np.array(clusters)
 
 
-def update_centroids(data, labels, k):
-
+def calculate_centroids(data, clusters, k):
     centroids = []
 
     for cluster in range(k):
+        points = data[clusters == cluster]
 
-        cluster_points = data[
-            labels == cluster
-        ]
-
-        if len(cluster_points) > 0:
-
-            centroid = np.mean(
-                cluster_points,
-                axis=0
-            )
-
+        if len(points) > 0:
+            centroid = np.mean(points, axis=0)
         else:
+            centroid = data[np.random.randint(len(data))]
 
-            centroid = data[
-                np.random.randint(
-                    0,
-                    len(data)
-                )
-            ]
-
-        centroids.append(
-            centroid
-        )
+        centroids.append(centroid)
 
     return np.array(centroids)
 
 
-def k_means(
-    data,
-    k,
-    max_iterations=100
-):
+def k_means(data, k, max_iterations=100):
+    random_indices = np.random.choice(len(data), k, replace=False)
+    centroids = data[random_indices].copy()
 
-    indices = np.random.choice(
-        len(data),
-        k,
-        replace=False
-    )
+    for _ in range(max_iterations):
 
-    centroids = data[
-        indices
-    ].copy()
+        clusters = assign_clusters(data, centroids)
 
+        new_centroids = calculate_centroids(data, clusters, k)
 
-    for iteration in range(
-        max_iterations
-    ):
-
-        labels = assign_clusters(
-            data,
-            centroids
-        )
-
-        new_centroids = update_centroids(
-            data,
-            labels,
-            k
-        )
-
-        if np.allclose(
-            centroids,
-            new_centroids
-        ):
-
+        if np.allclose(centroids, new_centroids):
             break
-
 
         centroids = new_centroids
 
+    return clusters, centroids
 
-    return labels, centroids
+numeric_data = data.select_dtypes(include=np.number)
 
-file = "Lab Session Data.xlsx"
-sheet = "marketing_campaign"
+numeric_data = numeric_data.dropna()
 
-df = pd.read_excel(file, sheet_name=sheet)
-
-
-numeric_df = df.select_dtypes(
-    include=np.number
-).dropna()
-
-data = numeric_df.values
-
-mean = np.mean(
-    data,
-    axis=0
-)
-
-std = np.std(
-    data,
-    axis=0
-)
-
-std[std == 0] = 1
-
-data = (
-    data - mean
-) / std
+feature_data = numeric_data.values
 
 k = 3
 
-labels, centroids = k_means(
-    data,
-    k
-)
+clusters, centroids = k_means(feature_data, k)
 
-print("Cluster Labels:")
-print(labels)
+print("K-Means Clustering Results")
+print("-" * 40)
 
-print("\nCentroids:")
-print(centroids)
+for cluster in range(k):
+    count = np.sum(clusters == cluster)
+    print(f"Cluster {cluster + 1}: {count} data points")
 
-plt.scatter(
-    data[:, 0],
-    data[:, 1],
-    c=labels
-)
+
+print("\nCentroids")
+print("-" * 40)
+
+for cluster in range(k):
+    print(f"\nCluster {cluster + 1}:")
+    
+    for feature, value in zip(numeric_data.columns, centroids[cluster]):
+        print(f"{feature:25} : {value:.4f}")
+
+
+plt.figure(figsize=(10, 6))
+
+for cluster in range(k):
+    points = feature_data[clusters == cluster]
+
+    plt.scatter(
+        points[:, 0],
+        points[:, 1],
+        label=f"Cluster {cluster + 1}"
+    )
 
 plt.scatter(
     centroids[:, 0],
     centroids[:, 1],
     marker="X",
-    s=200
+    s=200,
+    label="Centroids"
 )
 
-plt.xlabel(
-    numeric_df.columns[0]
-)
-
-plt.ylabel(
-    numeric_df.columns[1]
-)
-
-plt.title(
-    "K-Means Clustering"
-)
+plt.xlabel(numeric_data.columns[0])
+plt.ylabel(numeric_data.columns[1])
+plt.title("K-Means Clustering")
+plt.legend()
+plt.grid(True)
 
 plt.show()
